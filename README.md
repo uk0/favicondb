@@ -1,0 +1,2 @@
+# favicondb
+favicon database
