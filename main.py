@@ -11,7 +11,7 @@ from minitask.get_favicom import task_fet
 
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
-r = redis.Redis(host='localhost', port=6379, db=0)
+r = redis.Redis(host='redis', port=6379, db=0)
 
 image = Image.open('default_favicon.png')
 new_size = (48, 48)
@@ -44,4 +44,4 @@ def get_favicon(url_path: str):
     logging.info(f"task id: {task.id}")
     return Response(content=default_favicon, status_code=status.HTTP_200_OK, media_type="image/png")
 if __name__ == '__main__':
-    uvicorn.run('main:app')
+    uvicorn.run('main:app', host='0.0.0.0', port=8000, reload=True)

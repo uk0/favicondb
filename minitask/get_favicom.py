@@ -17,8 +17,8 @@ from celery import Celery, shared_task
 
 celery_app = Celery(
     "worker",
-    broker="redis://localhost:6379/1",
-    backend="redis://localhost:6379/2",
+    broker="redis://redis:6379/1",
+    backend="redis://redis:6379/2",
 )
 
 
@@ -29,7 +29,13 @@ async def get_favicon_task(url):
     host = parsed.netloc or parsed.path
     key = f"favicon:{host}"
 
-    browser = await launch(headless=True, args=["--window-size=400,300"])
+    browser = await launch(headless=True, args=[
+                                                "--window-size=400,300"
+                                                "--no-sandbox",
+                                                "--disable-setuid-sandbox",
+                                                "--disable-dev-shm-usage",
+                                                "--disable-gpu"
+                                                ])
     page = await browser.newPage()
     await page.setViewport({"width": 400, "height": 300})
     # 一次 goto 即可
@@ -61,7 +67,7 @@ async def get_favicon_task(url):
 
         logging.info(f"favicon url {favicon}")
 
-        r = redis.Redis(host='localhost', port=6379, db=0)
+        r = redis.Redis(host='redis', port=6379, db=6)
         favicon_data = None
 
         # 若为 data URI，直接解析

@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis
+    # 不暴露任何端口，只在docker内部使用
+    networks:
+      - internal_net
+
+  favicondb:
+    image: docker.io/firshme/favicondb
+    container_name: favicondb
+    shm_size: "1g"
+    ports:
+      - "8000:8000"
+    networks:
+      - internal_net
+    depends_on:
+      - redis
+
+networks:
+  internal_net:
+    driver: bridge
