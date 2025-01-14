@@ -1,0 +1,9 @@
+FROM firshme/favicondb:apple_arm
+
+
+SHELL ["/bin/bash", "-c"]
+
+ADD . /home/dev/
+WORKDIR /home/dev/
+
+CMD ["./celery_start.sh"]
