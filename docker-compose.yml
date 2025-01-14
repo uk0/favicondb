@@ -4,11 +4,14 @@ services:
   redis:
     image: redis
     # 不暴露任何端口，只在docker内部使用
+    restart: always
+    volumes:
+      - ./data/redis:/data
     networks:
       - internal_net
 
   favicondb:
-    image: docker.io/firshme/favicondb
+    image: docker.io/firshme/favicondb:x86
     container_name: favicondb
     shm_size: "1g"
     ports:
@@ -17,6 +20,7 @@ services:
       - internal_net
     depends_on:
       - redis
+    restart: always
 
 networks:
   internal_net:
