@@ -78,4 +78,5 @@ webencodings==0.5.1
 websockets==10.4
 zipp==3.21.0
 zope.event 
-zope.interface 
+zope.interface
+playwright

@@ -32,5 +32,6 @@ RUN apt-get update && apt-get install -y \
 
 RUN conda create -n favicondb python=3.10 -y && \
     conda run -n favicondb conda install cairo pango -y && \
-    conda run -n favicondb python -m pip install -r requirements.txt
+    conda run -n favicondb python -m pip install -r requirements.txt && \
+    conda run -n favicondb playwright install
 CMD ["./celery_start.sh"]

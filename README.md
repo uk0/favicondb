@@ -5,22 +5,58 @@
 ### install python dependencies
 
 ```bash
- conda create --name favicondb --file conda.env
+
+ conda create -n "favicondb" python==3.10
+ 
+```
+
+```bash
+
+ conda activate favicondb
+ 
+```
+
+```bash
+
+ pip install -r requirements.txt
+ 
 ```
 
 
-### base dependencies
+### start server
+
+* start celery worker
+
 
 ```bash
-docker run -itd --name redis-server -p 6379:6379 redis
+
+ celery -A minitask.get_favicom.celery_app worker --loglevel=info
+ 
 ```
 
+* start server
 
-
-### fix 
-
->OSError: no library called "cairo-2" was found (from Custom_Widgets import ProjectMaker)
 
 ```bash
-conda install cairo pango
+
+ python main.py
+ 
+```
+
+### quick start
+
+* docker build
+
+```bash
+
+docker build --platform=linux/amd64  -t firshme/favicondb  -f Dockerfile .
+
+```
+
+* docker-compose start 
+
+```bash
+
+docker-compose up -d
+
 ```
