@@ -44,6 +44,7 @@ def get_favicon(url_path: str):
     if job_data:
         return Response(content=default_favicon, status_code=status.HTTP_200_OK, media_type="image/png")
     logging.info(f"task get favicon url_path: {url_path}")
+    logging.info(f"task get favicon key : {key}")
     # start task to get favicon
     task = task_fet.apply_async(args=[url_path, ])
     logging.info(f"task id: {task.id}")

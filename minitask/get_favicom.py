@@ -51,24 +51,51 @@ async def get_favicon_task(url):
         favicon = await page.evaluate("""
             () => {
                 const getAttr = (el, attr) => el ? el.getAttribute(attr) : null;
-                let link = document.querySelector('link[rel="shortcut icon"]')
-                    || document.querySelector('link[rel="icon"]');
-                if (link) return getAttr(link, 'href');
-                let meta = document.querySelector('meta[property="og:image"]');
-                if (meta) return getAttr(meta, 'content');
-                let metaItem = document.querySelector('meta[itemprop="image"]');
-                if (metaItem) return getAttr(metaItem, 'content');
+                const rels = [
+                    'icon',
+                    'shortcut icon',
+                    'shortcut-icon',
+                    'shotcut icon',
+                    'apple-touch-icon',
+                    'apple-touch-icon-precomposed',
+                    'mask-icon',
+                    'fluid-icon',
+                    'application-icon',
+                    'favicon'
+                ];
+                
+                for (const rel of rels) {
+                    const link = document.querySelector(`link[rel="${rel}"]`);
+                    if (link) {
+                        return getAttr(link, 'href');
+                    }
+                }
+                
+                const partialLink = document.querySelector('link[rel*="icon"]');
+                if (partialLink) {
+                    return getAttr(partialLink, 'href');
+                }
+                
+                const meta = document.querySelector('meta[property="og:image"], meta[itemprop="image"]');
+                if (meta) {
+                    return getAttr(meta, 'content');
+                }
+                
                 return null;
             }
         """)
 
         page_url = page.url
 
+        parsed = urlparse(page_url)
+        host = parsed.netloc or parsed.path
+        logging.info(f"base favicon url {favicon}")
+
 
         if favicon:
             if not re.match(r'^https?://|^data:', favicon):
-                favicon = urljoin(page_url, favicon, allow_fragments=True)
-            logging.info(f"favicon url {favicon}")
+                favicon = urljoin(host, favicon, allow_fragments=True)
+                logging.info(f"not re.match favicon url {favicon}")
 
             favicon_data = None
             if favicon.startswith("data:image/"):
@@ -87,30 +114,43 @@ async def get_favicon_task(url):
                     favicon_data = base64.b64decode(base64_str)
                 except Exception as e:
                     logging.warning(f"获取 favicon 失败: {e}")
-
-            await browser.close()
-            r.delete(job_key)
-            if favicon_data:
-                if b"<svg" in favicon_data[:500].lower():
-                    try:
-                        png_data = cairosvg.svg2png(bytestring=favicon_data)
-                        r.set(key, png_data)
-                        logging.info(f"SVG 图标已转为 PNG 存入 Redis => {key}")
-                    except Exception as e:
-                        logging.warning(f"SVG 转换 PNG 失败: {e}")
-                else:
-                    try:
-                        img = Image.open(io.BytesIO(favicon_data))
-                        out = io.BytesIO()
-                        img.save(out, format="PNG")
-                        r.set(key, out.getvalue())
-                        logging.info(f"非 SVG 图标已转为 PNG 存入 Redis => {key}")
-                    except Exception as e:
-                        logging.warning(f"通用格式转 PNG 失败: {e}")
-            else:
-                logging.info("no get favicon icon.")
         else:
-            logging.info("页面中未找到 favicon 或图标")
+            favicon = urljoin(host, "/favicon.ico", allow_fragments=True)
+            # 用fetch拿二进制再base64
+            logging.warning(f"favicon is None use /favicon.ico try get {favicon}")
+            try:
+                base64_str = await page.evaluate(f"""
+                               async () => {{
+                                   const resp = await fetch("{favicon}");
+                                   const buf = await resp.arrayBuffer();
+                                   return btoa(String.fromCharCode(...new Uint8Array(buf)));
+                               }}
+                               """)
+                favicon_data = base64.b64decode(base64_str)
+            except Exception as e:
+                logging.warning(f"[default] 获取 favicon 失败: {e}")
+
+        await browser.close()
+        r.delete(job_key)
+        if favicon_data:
+            if b"<svg" in favicon_data[:500].lower():
+                try:
+                    png_data = cairosvg.svg2png(bytestring=favicon_data)
+                    r.set(key, png_data)
+                    logging.info(f"SVG 图标已转为 PNG 存入 Redis => {key}")
+                except Exception as e:
+                    logging.warning(f"SVG 转换 PNG 失败: {e}")
+            else:
+                try:
+                    img = Image.open(io.BytesIO(favicon_data))
+                    out = io.BytesIO()
+                    img.save(out, format="PNG")
+                    r.set(key, out.getvalue())
+                    logging.info(f"非 SVG 图标已转为 PNG 存入 Redis => {key}")
+                except Exception as e:
+                    logging.warning(f"通用格式转 PNG 失败: {e}")
+        else:
+            logging.info("no get favicon icon.")
 
 
 @celery_app.task
